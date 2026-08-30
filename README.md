@@ -4,8 +4,8 @@ Upload a question paper and a student's handwritten answer sheet. The app extrac
 every question, locates and transcribes the student's answer to each one, grades it,
 and highlights the exact region of the answer sheet the answer came from.
 
-**Live demo:**
-**Repo:**
+**Live demo:** https://vedai-exam-grader.vercel.app/
+**Repo:** https://github.com/itsmanojk/vedaai-exam-grader/
 
 ---
 
