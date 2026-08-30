@@ -3,7 +3,7 @@
 // server route has exactly one network dependency and one failure mode to
 // reason about.
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3.6-flash";
 
 export interface InlineImage {
   mimeType: string;
@@ -59,7 +59,6 @@ export async function generateJson<T>({
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema,
-      temperature: 0.2,
     },
   };
 
