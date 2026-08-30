@@ -4,8 +4,8 @@ Upload a question paper and a student's handwritten answer sheet. The app extrac
 every question, locates and transcribes the student's answer to each one, grades it,
 and highlights the exact region of the answer sheet the answer came from.
 
-**Live demo:** _add your deployed URL here after following Deploy below_
-**Repo:** _add your GitHub URL here_
+**Live demo:**
+**Repo:**
 
 ---
 
@@ -40,7 +40,7 @@ is fine" constraint. Reloading the page starts a fresh session.
 
 ## AI model / API used
 
-**Google Gemini** (`gemini-2.5-flash` by default, configurable via `GEMINI_MODEL`),
+**Google Gemini** (`gemini-3.6-flash` by default, configurable via `GEMINI_MODEL`),
 called directly over its REST API (no SDK dependency) from two Next.js route handlers:
 
 - `app/api/extract-questions/route.ts`
@@ -111,9 +111,4 @@ Open [http://localhost:3000](http://localhost:3000).
 The app is a standard Next.js app, so [Vercel](https://vercel.com) is the path of least
 resistance:
 
-1. Push this repo to GitHub.
-2. In Vercel, **Add New → Project**, import the repo.
-3. Add an environment variable `GEMINI_API_KEY` with your key (Project Settings →
-   Environment Variables). Optionally set `GEMINI_MODEL` too.
-4. Deploy. No other configuration is needed — there's no database or extra service to
-   provision.
+
