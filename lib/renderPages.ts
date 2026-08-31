@@ -12,8 +12,9 @@ async function getPdfjs() {
   return pdfjs;
 }
 
-const MAX_DIMENSION = 1800; // cap rendered page size so uploads stay fast + within model limits
-const JPEG_QUALITY = 0.85;
+// Optimized dimensions & compression quality to keep Base64 payloads under Vercel's 4.5MB limit
+const MAX_DIMENSION = 1400; 
+const JPEG_QUALITY = 0.70;
 
 function canvasToPageImage(canvas: HTMLCanvasElement, index: number): PageImage {
   return {
@@ -41,6 +42,10 @@ async function renderPdfToPages(file: File): Promise<PageImage[]> {
     canvas.height = Math.round(viewport.height);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Could not create canvas context while rendering PDF");
+
+    // Fill white background before drawing
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     await page.render({ canvasContext: ctx, viewport, canvas }).promise;
     pages.push(canvasToPageImage(canvas, pages.length));
@@ -70,6 +75,11 @@ async function renderImageFile(file: File, startIndex: number): Promise<PageImag
   canvas.height = Math.round(img.height * scale);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not create canvas context while reading image");
+
+  // Fill white background before drawing transparent images
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
   return canvasToPageImage(canvas, startIndex);

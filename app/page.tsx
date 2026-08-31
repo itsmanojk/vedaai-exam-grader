@@ -31,6 +31,7 @@ export default function Home() {
       ]);
       setAnswerPages(aPages);
 
+      // STEP 1: Extract Questions
       setStep("extracting-questions");
       const qRes = await fetch("/api/extract-questions", {
         method: "POST",
@@ -39,11 +40,29 @@ export default function Home() {
           pages: qPages.map((p) => dataUrlToInlineData(p.dataUrl)),
         }),
       });
+
+      // Safe JSON parsing check to handle Vercel 413 / text errors cleanly
+      if (!qRes.ok) {
+        const rawText = await qRes.text();
+        let errorMsg = "Failed to extract questions.";
+        try {
+          const parsed = JSON.parse(rawText);
+          errorMsg = parsed.error || errorMsg;
+        } catch {
+          if (qRes.status === 413 || rawText.includes("Request Entity Too Large")) {
+            errorMsg = "File payload is too large. Please upload smaller or lower-resolution images.";
+          } else {
+            errorMsg = `Server error (${qRes.status}): ${rawText.slice(0, 100)}`;
+          }
+        }
+        throw new Error(errorMsg);
+      }
+
       const qJson = await qRes.json();
-      if (!qRes.ok) throw new Error(qJson.error || "Failed to extract questions.");
       const extractedQuestions: Question[] = qJson.questions;
       setQuestions(extractedQuestions);
 
+      // STEP 2: Process & Grade Answers
       setStep("mapping-answers");
       const aRes = await fetch("/api/process-answers", {
         method: "POST",
@@ -53,8 +72,24 @@ export default function Home() {
           pages: aPages.map((p) => dataUrlToInlineData(p.dataUrl)),
         }),
       });
+
+      if (!aRes.ok) {
+        const rawText = await aRes.text();
+        let errorMsg = "Failed to map & grade answers.";
+        try {
+          const parsed = JSON.parse(rawText);
+          errorMsg = parsed.error || errorMsg;
+        } catch {
+          if (aRes.status === 413 || rawText.includes("Request Entity Too Large")) {
+            errorMsg = "Answer sheet payload is too large. Please reduce image sizes.";
+          } else {
+            errorMsg = `Server error (${aRes.status}): ${rawText.slice(0, 100)}`;
+          }
+        }
+        throw new Error(errorMsg);
+      }
+
       const aJson = await aRes.json();
-      if (!aRes.ok) throw new Error(aJson.error || "Failed to map & grade answers.");
       setGrading(aJson as GradingResult);
 
       setStep("done");
@@ -79,7 +114,8 @@ export default function Home() {
     setStep("idle");
   }
 
-  const processing = step === "rendering" || step === "extracting-questions" || step === "mapping-answers";
+  const processing =
+    step === "rendering" || step === "extracting-questions" || step === "mapping-answers";
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -128,4 +164,4 @@ export default function Home() {
       </div>
     </div>
   );
-}
+} 
