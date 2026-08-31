@@ -41,24 +41,24 @@ export default function Home() {
         }),
       });
 
-      // Safe JSON parsing check to handle Vercel 413 / text errors cleanly
-      if (!qRes.ok) {
-        const rawText = await qRes.text();
-        let errorMsg = "Failed to extract questions.";
-        try {
-          const parsed = JSON.parse(rawText);
-          errorMsg = parsed.error || errorMsg;
-        } catch {
-          if (qRes.status === 413 || rawText.includes("Request Entity Too Large")) {
-            errorMsg = "File payload is too large. Please upload smaller or lower-resolution images.";
-          } else {
-            errorMsg = `Server error (${qRes.status}): ${rawText.slice(0, 100)}`;
-          }
+      const qRawText = await qRes.text();
+      let qJson: any;
+      try {
+        qJson = JSON.parse(qRawText);
+      } catch {
+        if (qRes.status === 504 || qRes.status === 502) {
+          throw new Error("Vercel timed out waiting for AI response (10s Hobby limit). Try processing fewer pages.");
         }
-        throw new Error(errorMsg);
+        if (qRes.status === 413 || qRawText.includes("Request Entity Too Large")) {
+          throw new Error("File payload is too large for Vercel. Please upload smaller images.");
+        }
+        throw new Error(`Server returned non-JSON response (${qRes.status}): ${qRawText.slice(0, 100)}`);
       }
 
-      const qJson = await qRes.json();
+      if (!qRes.ok) {
+        throw new Error(qJson.error || "Failed to extract questions.");
+      }
+
       const extractedQuestions: Question[] = qJson.questions;
       setQuestions(extractedQuestions);
 
@@ -73,25 +73,25 @@ export default function Home() {
         }),
       });
 
-      if (!aRes.ok) {
-        const rawText = await aRes.text();
-        let errorMsg = "Failed to map & grade answers.";
-        try {
-          const parsed = JSON.parse(rawText);
-          errorMsg = parsed.error || errorMsg;
-        } catch {
-          if (aRes.status === 413 || rawText.includes("Request Entity Too Large")) {
-            errorMsg = "Answer sheet payload is too large. Please reduce image sizes.";
-          } else {
-            errorMsg = `Server error (${aRes.status}): ${rawText.slice(0, 100)}`;
-          }
+      const aRawText = await aRes.text();
+      let aJson: any;
+      try {
+        aJson = JSON.parse(aRawText);
+      } catch {
+        if (aRes.status === 504 || aRes.status === 502) {
+          throw new Error("Vercel timed out during answer processing. Try uploading fewer pages at once.");
         }
-        throw new Error(errorMsg);
+        if (aRes.status === 413 || aRawText.includes("Request Entity Too Large")) {
+          throw new Error("Answer sheet payload is too large for Vercel.");
+        }
+        throw new Error(`Server returned non-JSON response (${aRes.status}): ${aRawText.slice(0, 100)}`);
       }
 
-      const aJson = await aRes.json();
-      setGrading(aJson as GradingResult);
+      if (!aRes.ok) {
+        throw new Error(aJson.error || "Failed to map & grade answers.");
+      }
 
+      setGrading(aJson as GradingResult);
       setStep("done");
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
@@ -164,4 +164,4 @@ export default function Home() {
       </div>
     </div>
   );
-} 
+}
