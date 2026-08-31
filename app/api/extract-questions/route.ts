@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body provided in request." }, { status: 400 });
   }
 
   if (!body.pages?.length) {
-    return NextResponse.json({ error: "No question paper pages provided" }, { status: 400 });
+    return NextResponse.json({ error: "No question paper pages provided." }, { status: 400 });
   }
 
   try {
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
           (err.status === 503 || err.message?.includes("503") || err.message?.includes("high demand"));
 
         if (is503 && attempts < maxRetries) {
-          console.warn(`Gemini 503 high demand spike detected. Retry attempt ${attempts}/${maxRetries} in 2 seconds...`);
+          console.warn(`Gemini 503 high demand spike detected. Retry attempt ${attempts}/${maxRetries} in ${2 * attempts}s...`);
           await sleep(2000 * attempts); // Wait 2s, then 4s if needed
           continue;
         }
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     if (!result) {
       return NextResponse.json(
-        { error: "Model currently experiencing high demand. Please try again in a few moments." },
+        { error: "Model is currently experiencing high demand. Please try again in a few moments." },
         { status: 503 }
       );
     }
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       let id = makeQuestionId(q.number, q.subpart);
       const count = seen.get(id) ?? 0;
       seen.set(id, count + 1);
-      if (count > 0) id = `${id}-${count}`; // guard against duplicate numbering
+      if (count > 0) id = `${id}-${count}`; // Guard against duplicate numbering
       return {
         id,
         number: q.number,
@@ -97,10 +97,13 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ questions });
-  } catch (err) {
+  } catch (err: any) {
+    console.error("Error in extract-questions route:", err);
+
     if (err instanceof GeminiConfigError) {
       return NextResponse.json({ error: err.message }, { status: 500 });
     }
+    
     if (err instanceof GeminiRequestError) {
       const is503 = err.status === 503 || err.message?.includes("503");
       const errorMessage = is503
@@ -112,7 +115,9 @@ export async function POST(req: NextRequest) {
         { status: err.status === 429 ? 429 : is503 ? 503 : 502 }
       );
     }
-    console.error(err);
-    return NextResponse.json({ error: "Unexpected error extracting questions." }, { status: 500 });
+
+    // Fallback to guarantee JSON error response format
+    const fallbackMessage = err?.message || "An unexpected error occurred while extracting questions.";
+    return NextResponse.json({ error: fallbackMessage }, { status: 500 });
   }
 }
